@@ -29,7 +29,7 @@ var storage = multer.diskStorage({
 var upload = multer({ storage: storage });
 
 app.get('/news', (req, res, next) => {
-    var sql = `SELECT * FROM news`
+    var sql = `SELECT * FROM news ORDER BY date DESC`
     db.query(sql, (err, result) => {
         if (err) throw err;
         return res.send(result);
@@ -71,7 +71,7 @@ app.put('/news/:id', (req, res, next) => {
         link: req.body['link'],
     };
 
-    var sql = `UPDATE news SET title = ${data.title}, content = ${data.content}, link = ${data.link} WHERE id = ${req.params.id}`
+    var sql = `UPDATE news SET title = "${data.title}", content = "${data.content}", link = "${data.link}" WHERE id = ${req.params.id}`
     db.query(sql, (err, result) => {
         if (err) throw err;
         return res.send(result);
