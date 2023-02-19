@@ -16,7 +16,7 @@ processes = []
 
 [mounts]
 source="uploads"
-destination="/uploads"
+destination="/uploads/"
 
 [[services]]
   http_checks = []

@@ -3,6 +3,7 @@ var path = require('path');
 var cors = require('cors');
 var bodyParser = require('body-parser');
 var multer = require('multer')
+const cloudinary = require("cloudinary")
 var app = express();
 var port = process.env.PORT || 3000;
 
@@ -15,6 +16,12 @@ const { Client } = require('pg')
 const client = new Client({
     connectionString: process.env.DATABASE_URL,
 })
+
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.API_KEY,
+    api_secret: process.env.API_SECRET,
+});
 
 client.connect()
 
@@ -57,24 +64,31 @@ app.get('/news/:id', (req, res, next) => {
     });
 })
 
-app.post('/upload-news', upload.single('dataFile'), (req, res, next) => {
-    const file = req.file;
-    const data = {
-        title: req.body['title'],
-        content: req.body['content'],
-        link: req.body['link'],
-        date: Date.now(),
-        imageUrl: req.file.filename
-    };
+app.post('/upload-news', upload.single('dataFile'), async (req, res, next) => {
+    try {
+        const file = req.file;
 
-    if (!file)
-        return res.status(400).send({ message: 'Please upload a file.' });
+        if (!file)
+            return res.status(400).send({ message: 'Please upload a file.' });
 
-    var sql = `INSERT INTO news ("title", "content", "link", "date", "imageurl" )VALUES ($1, $2, $3, $4, $5) `;
-    client.query(sql, [data.title, data.content, data.link, data.date, data.imageUrl], (err, result) => {
-        if (err) throw err;
-        return res.send(result);
-    });
+        const uploadResult = await cloudinary.uploader.upload(req.file.path)
+
+        const data = {
+            title: req.body['title'],
+            content: req.body['content'],
+            link: req.body['link'],
+            date: Date.now(),
+            imageUrl: uploadResult.secure_url
+        };
+
+        var sql = `INSERT INTO news ("title", "content", "link", "date", "imageurl" )VALUES ($1, $2, $3, $4, $5) `;
+        client.query(sql, [data.title, data.content, data.link, data.date, data.imageUrl], (err, result) => {
+            return res.send(result);
+        });
+    } catch (error) {
+        throw error;
+    }
+
 });
 
 app.put('/news/:id', (req, res, next) => {
