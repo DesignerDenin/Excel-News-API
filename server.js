@@ -3,7 +3,6 @@ var path = require('path');
 var cors = require('cors');
 var bodyParser = require('body-parser');
 var multer = require('multer')
-var db = require('./database');
 var app = express();
 var port = process.env.PORT || 3000;
 
@@ -12,9 +11,25 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads'));
 
+const { Client } = require('pg')
+const client = new Client({
+    user: "postgres",
+    password: "JnGQcofWgPuOVCK",
+    connectionString: process.env.DATABASE_URL,
+})
+
+client.connect()
+
 
 app.get('/', (req, res) => {
     res.send('Node js file upload rest apis');
+});
+
+app.get('/test', (req, res) => {
+    client.query("SELECT current_user", (err, result) => {
+        if (err) throw err;
+        return res.send(result);
+    })
 });
 
 var storage = multer.diskStorage({
@@ -30,17 +45,17 @@ var upload = multer({ storage: storage });
 
 app.get('/news', (req, res, next) => {
     var sql = `SELECT * FROM news ORDER BY date DESC`
-    db.query(sql, (err, result) => {
+    client.query(sql, (err, result) => {
         if (err) throw err;
-        return res.send(result);
+        return res.send(result.rows);
     });
 })
 
 app.get('/news/:id', (req, res, next) => {
     var sql = `SELECT * FROM news WHERE id = ${req.params.id}`
-    db.query(sql, (err, result) => {
+    client.query(sql, (err, result) => {
         if (err) throw err;
-        return res.send(result);
+        return res.send(result.rows);
     });
 })
 
@@ -57,8 +72,8 @@ app.post('/upload-news', upload.single('dataFile'), (req, res, next) => {
     if (!file)
         return res.status(400).send({ message: 'Please upload a file.' });
 
-    var sql = `INSERT INTO news SET ? `;
-    db.query(sql, data, (err, result) => {
+    var sql = `INSERT INTO news ("title", "content", "link", "date", "imageurl" )VALUES ($1, $2, $3, $4, $5) `;
+    client.query(sql, [data.title, data.content, data.link, data.date, data.imageUrl], (err, result) => {
         if (err) throw err;
         return res.send(result);
     });
@@ -71,16 +86,16 @@ app.put('/news/:id', (req, res, next) => {
         link: req.body['link'],
     };
 
-    var sql = `UPDATE news SET title = "${data.title}", content = "${data.content}", link = "${data.link}" WHERE id = ${req.params.id}`
-    db.query(sql, (err, result) => {
+    var sql = `UPDATE news SET "title" = $1, "content" = $2, "link" = $3 WHERE id = $4`
+    client.query(sql, [data.title, data.content, data.link, req.params.id], (err, result) => {
         if (err) throw err;
         return res.send(result);
     });
 })
 
 app.delete('/news/:id', (req, res, next) => {
-    var sql = `DELETE FROM news WHERE id = ${req.params.id}`
-    db.query(sql, (err, result) => {
+    var sql = `DELETE FROM news WHERE id = $1`
+    client.query(sql, [req.params.id], (err, result) => {
         if (err) throw err;
         return res.send(result);
     });
