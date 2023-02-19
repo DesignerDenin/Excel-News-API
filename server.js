@@ -13,8 +13,6 @@ app.use('/uploads', express.static('uploads'));
 
 const { Client } = require('pg')
 const client = new Client({
-    user: "postgres",
-    password: "JnGQcofWgPuOVCK",
     connectionString: process.env.DATABASE_URL,
 })
 
