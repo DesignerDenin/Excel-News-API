@@ -14,10 +14,6 @@ processes = []
 [experimental]
   auto_rollback = true
 
-[mounts]
-source="uploads"
-destination="/uploads/"
-
 [[services]]
   http_checks = []
   internal_port = 8080
